@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "Qmsy Forwarder",
+  "version": "1.0.0",
+  "description": "秋冥散雨协议转发客户端",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval' 'sha256-E/sN3Kddy1hYphN705hD7d+v6CflSKsanYUWoV0wCSg=' http://localhost:* http://127.0.0.1:* https://*.genouka.top:*;",
+  "web_accessible_resources": ["qmsy-bridge.js"],
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
+}

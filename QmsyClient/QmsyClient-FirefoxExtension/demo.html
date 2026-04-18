@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QmsyClient 使用示例</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary { background: #0066cc; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        #log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .log-entry { margin: 2px 0; }
+        .log-info { color: #4fc1ff; }
+        .log-success { color: #4ec9b0; }
+        .log-error { color: #f48771; }
+        .log-warn { color: #dcdcaa; }
+    </style>
+</head>
+<body>
+    <h1>QmsyClient Extension Demo</h1>
+
+    <div class="note">
+        <strong>注意：</strong>使用此页面功能前，请先安装 Qmsy Forwarder Chrome扩展。
+    </div>
+
+    <div>
+        <button class="btn-primary" onclick="testConnect()">测试连接</button>
+        <button class="btn-secondary" onclick="testList()">列出连接</button>
+        <button class="btn-danger" onclick="clearLog()">清空日志</button>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function testConnect() {
+            if (typeof QmsyClient === 'undefined') {
+                log('QmsyClient 未加载，请确保扩展已安装并启用', 'error');
+                return;
+            }
+
+            log('正在连接测试服务器...', 'info');
+            
+            try {
+                const conn = await QmsyClient.connect({
+                    server: "127.0.0.1:59338",
+                    uid: "test_user",
+                    pwd: "test_pass",
+                    aid: "test_aid",
+                    urid: "test_urid",
+                    hid: "test_hid",
+                    forward: "127.0.0.1:5050",
+                    onMessage: (msg) => log(`服务器消息: ${msg}`, 'info'),
+                    onDisconnected: () => log('连接已断开', 'warn')
+                });
+
+                log(`连接成功! 分配端口: ${conn.port}`, 'success');
+                log(`连接ID: ${conn.connectionId}`, 'success');
+
+                // 5秒后自动断开演示
+                setTimeout(async () => {
+                    log('正在断开连接...', 'info');
+                    await conn.disconnect();
+                    log('断开完成', 'success');
+                }, 5000);
+
+            } catch (error) {
+                log(`连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testList() {
+            if (typeof QmsyClient === 'undefined') {
+                log('QmsyClient 未加载', 'error');
+                return;
+            }
+
+            try {
+                const connections = await QmsyClient.listConnections();
+                log(`当前活动连接数: ${connections.length}`, 'info');
+                connections.forEach((conn, i) => {
+                    log(`  [${i+1}] 端口: ${conn.port}, 服务器: ${conn.server}`, 'info');
+                });
+            } catch (error) {
+                log(`获取列表失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 监听扩展就绪事件
+        window.addEventListener('QmsyClientReady', (e) => {
+            log('QmsyClient API 已就绪', 'success');
+        });
+
+        // 初始检查
+        if (typeof QmsyClient !== 'undefined') {
+            log('QmsyClient 已就绪', 'success');
+        } else {
+            log('等待 QmsyClient 加载...', 'info');
+        }
+    </script>
+</body>
+</html>
