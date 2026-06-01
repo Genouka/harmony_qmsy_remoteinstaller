@@ -3,12 +3,14 @@ const path = require('path');
 const db = require('./db/database');
 const hdc = require('./services/hdc');
 const deviceManager = require('./services/device');
+const qmsyAdapter = require('./services/qmsy-adapter');
 const userRoutes = require('./routes/user');
 const packageRoutes = require('./routes/package');
 const deviceRoutes = require('./routes/device');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const QMSY_PORT = parseInt(process.env.QMSY_PORT || '59338', 10);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -28,7 +30,11 @@ app.get('/api/status', async (req, res) => {
     status: 'running',
     hdc_available: hdcAvailable,
     version: require('../package.json').version,
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    qmsy_adapter: {
+      enabled: true,
+      port: QMSY_PORT
+    }
   });
 });
 
@@ -62,16 +68,29 @@ async function start() {
     console.log('[HDC] 请确保 hdc 已加入 PATH，或设置 HDC_PATH 环境变量');
   }
 
+  qmsyAdapter.start();
+  console.log(`[QmsyAdapter] QMSY协议适配器已启用 (端口 ${QMSY_PORT})`);
+
   app.listen(PORT, () => {
     console.log('='.repeat(50));
-    console.log(`  服务已启动: http://localhost:${PORT}`);
-    console.log(`  API 状态:   http://localhost:${PORT}/api/status`);
+    console.log(`  HTTP 服务:    http://localhost:${PORT}`);
+    console.log(`  QMSY 适配器:  端口 ${QMSY_PORT}`);
+    console.log(`  API 状态:     http://localhost:${PORT}/api/status`);
     console.log('='.repeat(50));
     console.log('');
     console.log('API 路由:');
-    console.log('  用户管理:   /api/users');
-    console.log('  安装包管理: /api/packages');
-    console.log('  设备管理:   /api/devices');
+    console.log('  用户管理:     /api/users');
+    console.log('  安装包管理:   /api/packages');
+    console.log('  设备管理:     /api/devices');
+    console.log('');
+    console.log('QMSY协议:');
+    console.log('  原生二进制:   端口 59338');
+    console.log('  WebSocket:   ws://localhost:59338');
+    console.log('');
+    console.log('CLI模式 (兼容QmsyServer):');
+    console.log('  node src/cli.js --username <uid> --password <pwd>');
+    console.log('    --access-token <aid> --user-id <urid>');
+    console.log('    --hap-id <hid> -IP <ip:port>');
     console.log('');
     console.log('默认管理员: admin / admin123');
     console.log('='.repeat(50));
@@ -80,12 +99,14 @@ async function start() {
 
 process.on('SIGINT', () => {
   console.log('\n[Shutdown] 正在关闭服务...');
+  qmsyAdapter.stop();
   deviceManager.stopAutoScan();
   db.close();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
+  qmsyAdapter.stop();
   deviceManager.stopAutoScan();
   db.close();
   process.exit(0);
