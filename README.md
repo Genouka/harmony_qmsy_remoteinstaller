@@ -71,7 +71,7 @@ export PENDING_MAX=2
 
 ## 技术文档
 
-- [QMSY Protocol Specification v5.0.0](./protocol.md) - 完整协议规范
+- [QMSY Protocol Specification v5.0.0](./qmsy_protocol.md) - 完整协议规范
 - [Android Client API](./QmsyClient/RemoteLinker-android-genouka/) - Java客户端实现
 - [HarmonyOS Client API](./QmsyClient/RemoteLinker-hmos-genouka/) - ArkTS客户端实现
 
